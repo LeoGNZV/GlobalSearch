@@ -1,5 +1,7 @@
 build/
 
+.vs/
+
 # Compiled Object files
 *.slo
 *.lo
