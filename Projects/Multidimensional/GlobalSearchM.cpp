@@ -98,7 +98,7 @@ vector<double> GlobalSearchM::start(Func valueCountFunc)
 		Extended m = countingm(M);
 		t = countingt(m);
 		Extended nEl;
-		if (count == 1)
+		if ((t == 1) || (t == testSequence.size() - 1))
 			nEl = 0.5 * (testSequence[t].getxExt() + testSequence[t - 1].getxExt());
 		else
 			nEl = 0.5 * (testSequence[t].getxExt() + testSequence[t - 1].getxExt())
