@@ -8,6 +8,15 @@ bool compare(DotN& left, DotN& right)
 	return left.getxExt() < right.getxExt();
 }
 
+//GlobalSearchM::GlobalSearchM(size_t n, double r, int i) : N(n), coefR(r), index(i), GKLSFam(N, Simple), GKLSFamHard(N, Hard)
+//{
+//	TGKLSProblemFamily GKLSFamTemp(N, Simple);
+//	TGKLSProblemFamily GKLSFamHardTemp(N, Hard);
+//
+//	GKLSFam = GKLSFamTemp;
+//	GKLSFamHard = GKLSFamHardTemp;
+//}
+
 void GlobalSearchM::sortTestSequence()
 {
 	sort(testSequence.begin(), testSequence.end(), compare);
@@ -92,7 +101,7 @@ int GlobalSearchM::countingt(Extended m)
 	return t;
 }
 
-vector<int> GlobalSearchM::countingtParallel(Extended m, int p)
+vector<int> GlobalSearchM::countingtParallel(Extended m, int p, double bestGlobalMin)
 {
 	vector<Extended> valueRt(p, -numeric_limits<double>::infinity());
 	vector<int> t(p, 0);
@@ -104,7 +113,8 @@ vector<int> GlobalSearchM::countingtParallel(Extended m, int p)
 		Extended subX = pow(testSequence[i].getxExt() - testSequence[i - 1].getxExt(), 1 / N);
 		double subZ = (testSequence[i].getZ() - testSequence[i - 1].getZ());
 		double sumZ = (testSequence[i].getZ() + testSequence[i - 1].getZ());
-		Extended interValueRt = subX + subZ * subZ / m / m / subX - 2 * sumZ / m;
+		Extended interValueRt = subX + subZ * subZ / m / m / subX - 2 * (sumZ - 2 * bestGlobalMin) / m;
+		//Extended interValueRt = subX + subZ * subZ / m / m / subX - 2 * sumZ / m;
 
 		// если новая характеристика интервала становится больше, 
 		// чем минимальное значение из массива максимальных характеристик,
@@ -131,29 +141,37 @@ vector<int> GlobalSearchM::countingtParallel(Extended m, int p)
 }
 
 template<typename Func>
-vector<double> GlobalSearchM::start(Func valueCountFunc)
+vector<double> GlobalSearchM::start(Func valueCountFunc, vector<double> a_ , vector<double> b_)
 {
-	vector<double> x1, x2;
-	for (int i = 0; i < N; i++)
+	double* a = new double[N];
+	double* b = new double[N];
+	for (int j = 0; j < a_.size(); j++)
 	{
-		x1.push_back(a[i]);
-		x2.push_back(b[i]);
+		a[j] = a_[j];
 	}
-	DotN x(x1, a, b);
+	for (int j = 0; j < b_.size(); j++)
+	{
+		b[j] = b_[j];
+	}
+	Extended x1 = 0.0, x2 = 1.0;
+	DotN x(x1, a, b, N);
 	x.pointTest(valueCountFunc(x.getY()));
-	DotN y(x2, a, b);
+	DotN y(x2, a, b, N);
 	y.pointTest(valueCountFunc(y.getY()));
 	testSequence.push_back(x);
 	testSequence.push_back(y);
-	double t1 = time(NULL);
+
 	int count = 0;
 	DotN bestGlobalMin(0.0, a, b, N, numeric_limits<double>::infinity());
-
+	bestGlobalMin = testSequence[0];
+	if (testSequence[1].getZ() < bestGlobalMin.getZ())
+		bestGlobalMin = testSequence[1];
 	int procNum = 0;
 	int procRank = 0;
 	MPI_Comm_size(MPI_COMM_WORLD, &procNum);
 	MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
 	
+	auto t1 = std::chrono::steady_clock::now();
 	// формируем новые точки с шагом step, чтобы количество интварвалов стало равно procNum
 	Extended step = (y.getxExt() - x.getxExt()) / (procNum);
 	for (int i = 1; i < procNum; i++)
@@ -189,7 +207,7 @@ vector<double> GlobalSearchM::start(Func valueCountFunc)
 		sortTestSequence();
 		Extended m = countingm(M);
 
-		tmax = countingtParallel(m, procNum);
+		tmax = countingtParallel(m, procNum, bestGlobalMin.getZ());
 
 
 		// формируем newElementsExtended
@@ -242,6 +260,16 @@ vector<double> GlobalSearchM::start(Func valueCountFunc)
 			if (newElemSequence.getZ() < bestGlobalMin.getZ())
 				bestGlobalMin = newElemSequence;
 			testSequence.push_back(newElemSequence);
+			//for (int l = 0; l < N; l++)
+			//{
+			//	if (pow(abs(testSequence[tmax[k]].getY()[l] - testSequence[tmax[k] - 1].getY()[l]), 1 / N) < 0.01)
+			//		provisional_continue_iteratiom = false;
+			//	else
+			//	{
+			//		provisional_continue_iteratiom = true;
+			//		break;
+			//	}
+			//}
 			if (pow(testSequence[tmax[k]].getxExt() - testSequence[tmax[k] - 1].getxExt(), 1 / N) < 0.01)
 				provisional_continue_iteratiom = false;
 		}
@@ -250,26 +278,50 @@ vector<double> GlobalSearchM::start(Func valueCountFunc)
 		MPI_Bcast(&continue_iteration, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
 	} while (continue_iteration);
 
-	double t2 = time(NULL);
-	double time = t2 - t1;
+	auto t2 = std::chrono::steady_clock::now();
+	double time = (t2 - t1).count();
+
+	delete[] a;
+	delete[] b;
+
 	vector<double> res;
 	res.push_back(count);
 	res.push_back(bestGlobalMin.getZ());
 	res.push_back(time);
-	res.push_back(bestGlobalMin.getY()[0]);
-	res.push_back(bestGlobalMin.getY()[1]);
+	for (int k = 0; k <  N; k++)
+		res.push_back(bestGlobalMin.getY()[k]);
 	return res;
 }
 
 vector<double> GlobalSearchM::startShekel()
 {
-	vector<double> answer = start([=](vector<double> y) { return shekelFam[index]->ComputeFunction({ y }); });
+	vector<double> lb, ub;
+	shekelFam[index]->GetBounds(lb, ub);
+	vector<double> answer = start([=](vector<double> y) { return shekelFam[index]->ComputeFunction({ y }); }, lb, ub);
 	return answer;
 }
 
 vector<double> GlobalSearchM::startGrishagin()
 {
-	vector<double> answer = start([=](vector<double> y) { return grishaginFam[index]->ComputeFunction({ y }); });
+	vector<double> lb, ub;
+	grishaginFam[index]->GetBounds(lb, ub);
+	vector<double> answer = start([=](vector<double> y) { return grishaginFam[index]->ComputeFunction({ y }); }, lb, ub);
+	return answer;
+}
+
+vector<double> GlobalSearchM::startGKLS()
+{
+	vector<double> lb, ub;
+	GKLSFam[index]->GetBounds(lb, ub);
+	vector<double> answer = start([=](vector<double> y) { return GKLSFam[index]->ComputeFunction({ y }); }, lb, ub);
+	return answer;
+}
+
+vector<double> GlobalSearchM::startHardGKLS()
+{
+	vector<double> lb, ub;
+	GKLSFamHard[index]->GetBounds(lb, ub);
+	vector<double> answer = start([=](vector<double> y) { return GKLSFamHard[index]->ComputeFunction({ y }); }, lb, ub);
 	return answer;
 }
 //vector<double> GlobalSearchM::startShekel()
