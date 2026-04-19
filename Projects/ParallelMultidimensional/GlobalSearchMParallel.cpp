@@ -153,6 +153,7 @@ vector<double> GlobalSearchM::start(Func valueCountFunc, vector<double> a_ , vec
 	{
 		b[j] = b_[j];
 	}
+
 	Extended x1 = 0.0, x2 = 1.0;
 	DotN x(x1, a, b, N);
 	x.pointTest(valueCountFunc(x.getY()));

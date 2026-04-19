@@ -98,7 +98,7 @@ public:
 
 	double GetMinVHardGKLS()
 	{
-		return GKLSFam[index]->GetOptimumValue();
+		return GKLSFamHard[index]->GetOptimumValue();
 	}
 
 	vector<double> GetMinArgShekel()
@@ -118,6 +118,6 @@ public:
 
 	vector<double> GetMinArgHardGKLS()
 	{
-		return GKLSFam[index]->GetOptimumPoint();
+		return GKLSFamHard[index]->GetOptimumPoint();
 	}
 };

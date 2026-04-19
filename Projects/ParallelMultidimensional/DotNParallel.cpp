@@ -14,7 +14,7 @@ DotN::DotN(vector<double> x_, double* a, double* b) : y(x_)
 	for (int i = 0; i < y.size(); i++)
 		yNewFormat[i] = y[i];
 	h.GetInverseImage(yNewFormat, xExt);
-	delete yNewFormat;
+	delete[] yNewFormat;
 }
 
 DotN::DotN(Extended x_, double* a, double* b, size_t N) : xExt(x_)
@@ -25,7 +25,7 @@ DotN::DotN(Extended x_, double* a, double* b, size_t N) : xExt(x_)
 	h.GetImage(xExt, yNewFormat);
 	for (int i = 0; i < N; i++)
 		y.push_back(yNewFormat[i]);
-	delete yNewFormat;
+	delete[] yNewFormat;
 }
 
 DotN::DotN(Extended x_, double* a, double* b, size_t N, double z_) : xExt(x_), z(z_)
@@ -36,7 +36,7 @@ DotN::DotN(Extended x_, double* a, double* b, size_t N, double z_) : xExt(x_), z
 	h.GetImage(xExt, yNewFormat);
 	for (int i = 0; i < N; i++)
 		y.push_back(yNewFormat[i]);
-	delete yNewFormat;
+	delete[] yNewFormat;
 }
 
 DotN& DotN::operator=(const DotN& d)
