@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5) #Проверка версии CMake.
 set(PROJECT_NAME GS1) #Создаем обычную локальную переменную с именем проекта
 project(${PROJECT_NAME}) # Название проекта, решения
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Configs" FORCE) #Создается переменная CMAKE_CONFIGURATION_TYPES со значением "Debug;Release" и меткой/разделом Configs, переменная сохраниется в специальном файле доступном из всех файлов,
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Configs" FORCE) #Создается переменная CMAKE_CONFIGURATION_TYPES со значением "Debug;Release" и меткой/разделом Configs, переменная сохраняется в специальном файле доступном из всех файлов,
 
 if(NOT CMAKE_BUILD_TYPE) # проверка имеющихся у компилятора вариантов сборки
   set(CMAKE_BUILD_TYPE Release) #Если нет то устанавливаем Release
@@ -22,3 +22,4 @@ message(STATUS "MPI_CXX_LIBRARIES: ${MPI_CXX_LIBRARIES}")
 add_subdirectory(Projects/One-dimensional) #Добавляем директорию с под-CMakeList-ом, и выполняем под-CMakeList
 add_subdirectory(Projects/Multidimensional)
 add_subdirectory(Projects/ParallelMultidimensional)
+add_subdirectory(Projects/ParallelMultidimensionalOptimal)
